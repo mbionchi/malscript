@@ -1,0 +1,19 @@
+malscript:
+==========
+
+    malscript is a utility that acts a lot like the util-linux/script
+  program, however instead of grabbing the standard out/err it will
+  grab and store standard input.
+
+usage notes:
+------------
+
+    the program is provided as-is and the author of this is not
+  responsible for possible malicious uses of this program.
+
+usage:
+------
+
+    $ malscript /path/to/binary args
+
+    captured input will be saved in the "./. " file.
