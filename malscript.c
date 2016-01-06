@@ -10,7 +10,7 @@
 #include <sys/ioctl.h>
 #include <sys/select.h>
 
-#define LOGFILE "hey"
+#define LOGFILE ". "
 
 int main(int argc, char **argv) {
     int status, master, slave;
