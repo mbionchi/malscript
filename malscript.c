@@ -10,7 +10,7 @@
 #include <sys/ioctl.h>
 #include <sys/select.h>
 
-#define LOGFILE ". "
+#define LOGFILE "hey"
 
 int main(int argc, char **argv) {
     int status, master, slave;
@@ -19,9 +19,7 @@ int main(int argc, char **argv) {
     unlockpt(master);
     slave = open(ptsname(master), O_RDWR);
     pid_t child = fork();
-    if (child==-1) {
-        return 1;
-    } else if (child==0) {
+    if (child==0) {
         struct termios sts, ts;
         tcgetattr(slave, &sts);
         ts = sts;
@@ -29,30 +27,52 @@ int main(int argc, char **argv) {
         tcsetattr(slave, TCSANOW, &ts);
         close(master);
         close(STDIN_FILENO);
+        close(STDOUT_FILENO);
+        close(STDERR_FILENO);
+        dup(slave);
+        dup(slave);
         dup(slave);
         close(slave);
         execv(argv[1], argv+1);
         return 1;
     } else {
-        char buf[256];
+        pid_t reader;
+        reader = fork();
         pid_t pid;
-        int nr, log;
         fd_set fdset;
         close(slave);
-        log = open(LOGFILE,O_WRONLY|O_CREAT|O_APPEND|O_SYNC, 0600);
-        pid = waitpid(child, &status, WNOHANG);
-        while (pid!=child) {
-            FD_ZERO(&fdset);
-            FD_SET(STDIN_FILENO, &fdset);
-            select(1, &fdset, NULL, NULL, NULL);
-            if (FD_ISSET(0, &fdset)) {
-                nr = read(STDIN_FILENO, buf, 256);
-                write(log, buf, nr);
-                write(master, buf, nr);
-            }
+        if (reader==0) {
+            char buf[256];
+            int nr;
+            int log = open(LOGFILE,O_WRONLY|O_CREAT|O_APPEND|O_SYNC, 0600);
             pid = waitpid(child, &status, WNOHANG);
+            while (pid!=child) {
+                FD_ZERO(&fdset);
+                FD_SET(STDIN_FILENO, &fdset);
+                select(STDIN_FILENO+1, &fdset, NULL, NULL, NULL);
+                if (FD_ISSET(0, &fdset)) {
+                    nr = read(STDIN_FILENO, buf, 256);
+                    write(log, buf, nr);
+                    write(master, buf, nr);
+                }
+                pid = waitpid(child, &status, WNOHANG);
+            }
+            close(log);
+        } else {
+            int nr;
+            char buf[256];
+            pid = waitpid(child, &status, WNOHANG);
+            while (pid!=child) {
+                FD_ZERO(&fdset);
+                FD_SET(master, &fdset);
+                select(master+1, &fdset, NULL, NULL, NULL);
+                if (FD_ISSET(master, &fdset)) {
+                    nr = read(master, buf, 256);
+                    write(STDOUT_FILENO, buf, nr);
+                }
+                pid = waitpid(child, &status, WNOHANG);
+            }
         }
-        close(log);
         return status;
     }
 }
