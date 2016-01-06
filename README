@@ -11,6 +11,11 @@ usage notes:
     the program is provided as-is and the author of this is not
   responsible for possible malicious uses of this program.
 
+compilation:
+------------
+
+    $ gcc -o malscript malscript.c
+
 usage:
 ------
 
