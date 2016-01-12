@@ -21,10 +21,11 @@ int main(int argc, char **argv) {
     pid_t child = fork();
     if (child==0) {
         struct termios sts, ts;
-        tcgetattr(slave, &sts);
-        ts = sts;
-        cfmakeraw(&ts);
-        tcsetattr(slave, TCSANOW, &ts);
+        tcgetattr(STDIN_FILENO, &ts);
+        sts = ts;
+        cfmakeraw(&sts);
+        sts.c_lflag &= ~ECHO;
+        tcsetattr(STDIN_FILENO, TCSANOW, &sts);
         close(master);
         close(STDIN_FILENO);
         close(STDOUT_FILENO);
@@ -32,6 +33,8 @@ int main(int argc, char **argv) {
         dup(slave);
         dup(slave);
         dup(slave);
+        setsid();
+        ioctl(slave, TIOCSCTTY, 0);
         close(slave);
         execv(argv[1], argv+1);
         return 1;
